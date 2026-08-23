@@ -180,6 +180,36 @@
             "retry-until-success": true
           }
         },
+        {%- if ingest_pipeline_name is defined and ingest_pipeline_name == "enrich" %}
+        {
+          "tags": ["setup"],
+          "operation": "delete-http-status-lookup-index"
+        },
+        {
+          "tags": ["setup"],
+          "operation": "create-http-status-lookup-index"
+        },
+        {
+          "tags": ["setup"],
+          "operation": "index-http-status-lookup-docs"
+        },
+        {
+          "tags": ["setup"],
+          "operation": "refresh-http-status-lookup"
+        },
+        {
+          "tags": ["setup"],
+          "operation": "delete-http-status-enrich-policy"
+        },
+        {
+          "tags": ["setup"],
+          "operation": "create-http-status-enrich-policy"
+        },
+        {
+          "tags": ["setup"],
+          "operation": "execute-http-status-enrich-policy"
+        },
+        {%- endif %}
         {
           "tags": ["setup"],
           "operation": "create-http-log-{{ingest_pipeline_name | default('baseline')}}-pipeline"

@@ -66,6 +66,13 @@
           "city_name": { "type": "keyword" },
           "location" : { "type" : "geo_point" }
         }
+      },
+      "status_info": {
+        "properties": {
+          "http_status": { "type": "keyword" },
+          "status_description": { "type": "keyword" },
+          "status_category": { "type": "keyword" }
+        }
       }
     }
   }

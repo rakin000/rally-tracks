@@ -1,0 +1,101 @@
+{
+      "name": "delete-http-status-lookup-index",
+      "operation-type": "raw-request",
+      "method": "DELETE",
+      "path": "/http-status-lookup",
+      "ignore": [404]
+    },
+    {
+      "name": "create-http-status-lookup-index",
+      "operation-type": "raw-request",
+      "method": "PUT",
+      "path": "/http-status-lookup",
+      "body": {
+        "settings": {
+          "index.number_of_shards": 1,
+          "index.number_of_replicas": 0
+        },
+        "mappings": {
+          "properties": {
+            "http_status": { "type": "keyword" },
+            "status_description": { "type": "keyword" },
+            "status_category": { "type": "keyword" }
+          }
+        }
+      }
+    },
+    {
+      "name": "index-http-status-lookup-docs",
+      "operation-type": "composite",
+      "requests": [
+        {
+          "stream": [
+            { "operation-type": "raw-request", "method": "PUT", "path": "/http-status-lookup/_doc/200", "body": { "http_status": "200", "status_description": "OK", "status_category": "Success" } },
+            { "operation-type": "raw-request", "method": "PUT", "path": "/http-status-lookup/_doc/302", "body": { "http_status": "302", "status_description": "Found", "status_category": "Redirection" } },
+            { "operation-type": "raw-request", "method": "PUT", "path": "/http-status-lookup/_doc/304", "body": { "http_status": "304", "status_description": "Not Modified", "status_category": "Redirection" } },
+            { "operation-type": "raw-request", "method": "PUT", "path": "/http-status-lookup/_doc/400", "body": { "http_status": "400", "status_description": "Bad Request", "status_category": "Client Error" } },
+            { "operation-type": "raw-request", "method": "PUT", "path": "/http-status-lookup/_doc/401", "body": { "http_status": "401", "status_description": "Unauthorized", "status_category": "Client Error" } },
+            { "operation-type": "raw-request", "method": "PUT", "path": "/http-status-lookup/_doc/403", "body": { "http_status": "403", "status_description": "Forbidden", "status_category": "Client Error" } },
+            { "operation-type": "raw-request", "method": "PUT", "path": "/http-status-lookup/_doc/404", "body": { "http_status": "404", "status_description": "Not Found", "status_category": "Client Error" } },
+            { "operation-type": "raw-request", "method": "PUT", "path": "/http-status-lookup/_doc/500", "body": { "http_status": "500", "status_description": "Internal Server Error", "status_category": "Server Error" } },
+            { "operation-type": "raw-request", "method": "PUT", "path": "/http-status-lookup/_doc/501", "body": { "http_status": "501", "status_description": "Not Implemented", "status_category": "Server Error" } }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "refresh-http-status-lookup",
+      "operation-type": "refresh",
+      "index": "http-status-lookup"
+    },
+    {
+      "name": "delete-http-status-enrich-policy",
+      "operation-type": "raw-request",
+      "method": "DELETE",
+      "path": "/_enrich/policy/http-status-policy",
+      "ignore": [404]
+    },
+    {
+      "name": "create-http-status-enrich-policy",
+      "operation-type": "raw-request",
+      "method": "PUT",
+      "path": "/_enrich/policy/http-status-policy",
+      "body": {
+        "match": {
+          "indices": "http-status-lookup",
+          "match_field": "http_status",
+          "enrich_fields": ["status_description", "status_category"]
+        }
+      }
+    },
+    {
+      "name": "execute-http-status-enrich-policy",
+      "operation-type": "raw-request",
+      "method": "POST",
+      "path": "/_enrich/policy/http-status-policy/_execute"
+    },
+    {
+      "name": "create-http-log-enrich-pipeline",
+      "operation-type": "put-pipeline",
+      "id": "http-log-enrich-pipeline",
+      "body": {
+        "description": "Enrich the http status code with a human-readable description and category using the http_status enrich key.",
+        "processors": [
+          {
+            "enrich": {
+              "policy_name": "http-status-policy",
+              "field": "status",
+              "target_field": "status_info"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "index-append-with-ingest-enrich-pipeline",
+      "operation-type": "bulk",
+      "bulk-size": {{bulk_size | default(5000)}},
+      "ingest-percentage": {{ingest_percentage | default(100)}},
+      "pipeline": "http-log-enrich-pipeline",
+      "corpora": "http_logs"
+    }
